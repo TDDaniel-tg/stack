@@ -134,76 +134,115 @@ async function extractFromImage() {
 - Вопросы могут быть пронумерованы как 1, 2, 3 или I, II, III
 - Верни ТОЛЬКО JSON без дополнительного текста`;
 
-    try {
-        const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-goog-api-key': apiKey
-            },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [
-                        { text: extractPrompt },
-                        {
-                            inlineData: {
-                                mimeType: 'image/jpeg',
-                                data: uploadedImageBase64
+    // Models to try - from primary to fallbacks
+    const models = [
+        'gemini-2.5-flash',
+        'gemini-2.5-flash-lite',
+        'gemini-2.0-flash'
+    ];
+    let lastError = null;
+
+    for (const model of models) {
+        try {
+            extractBtn.innerHTML = `<span class="btn-icon">⚡</span> ${model}...`;
+            console.log(`Trying model for image: ${model}`);
+
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-goog-api-key': apiKey
+                },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [
+                            { text: extractPrompt },
+                            {
+                                inlineData: {
+                                    mimeType: 'image/jpeg',
+                                    data: uploadedImageBase64
+                                }
                             }
-                        }
-                    ]
-                }],
-                generationConfig: {
-                    temperature: 0.1,
-                    maxOutputTokens: 1024,
+                        ]
+                    }],
+                    generationConfig: {
+                        temperature: 0.1,
+                        maxOutputTokens: 1024,
+                    }
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                const errorMsg = errorData.error?.message || `HTTP Error: ${response.status}`;
+                console.log(`Model ${model} failed: ${errorMsg}`);
+
+                // If overloaded, try next model
+                if (errorMsg.includes('overloaded') || errorMsg.includes('quota') ||
+                    errorMsg.includes('not found') || response.status === 503 ||
+                    response.status === 429 || response.status === 404) {
+                    lastError = new Error(errorMsg);
+                    continue;
                 }
-            })
-        });
+                throw new Error(errorMsg);
+            }
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error?.message || `HTTP Error: ${response.status}`);
+            const data = await response.json();
+
+            if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+                let resultText = data.candidates[0].content.parts[0].text;
+
+                // Clean up the response - remove markdown code blocks if present
+                resultText = resultText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+
+                // Parse JSON
+                const extracted = JSON.parse(resultText);
+
+                // Fill in the form
+                if (extracted.ticketNumber) {
+                    ticketNumberInput.value = extracted.ticketNumber;
+                }
+                if (extracted.question1) {
+                    question1Input.value = extracted.question1;
+                }
+                if (extracted.question2) {
+                    question2Input.value = extracted.question2;
+                }
+                if (extracted.question3) {
+                    question3Input.value = extracted.question3;
+                }
+
+                showToast(`Вопросы извлечены (${model})! ✨`);
+
+                // Reset and return on success
+                extractBtn.classList.remove('loading');
+                extractBtn.disabled = false;
+                extractBtn.innerHTML = '<span class="btn-icon">🔍</span> Извлечь вопросы из фото';
+                return;
+            } else {
+                throw new Error('Неожиданный формат ответа от API');
+            }
+
+        } catch (error) {
+            console.error(`Model ${model} error:`, error);
+            lastError = error;
+
+            // If overloaded, continue to next model
+            if (error.message.includes('overloaded') || error.message.includes('quota') ||
+                error.message.includes('not found') || error.message.includes('503')) {
+                continue;
+            }
+            break;
         }
-
-        const data = await response.json();
-
-        if (data.candidates && data.candidates[0] && data.candidates[0].content) {
-            let resultText = data.candidates[0].content.parts[0].text;
-
-            // Clean up the response - remove markdown code blocks if present
-            resultText = resultText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-
-            // Parse JSON
-            const extracted = JSON.parse(resultText);
-
-            // Fill in the form
-            if (extracted.ticketNumber) {
-                ticketNumberInput.value = extracted.ticketNumber;
-            }
-            if (extracted.question1) {
-                question1Input.value = extracted.question1;
-            }
-            if (extracted.question2) {
-                question2Input.value = extracted.question2;
-            }
-            if (extracted.question3) {
-                question3Input.value = extracted.question3;
-            }
-
-            showToast('Вопросы извлечены из фото! ✨');
-        } else {
-            throw new Error('Неожиданный формат ответа от API');
-        }
-
-    } catch (error) {
-        console.error('Error:', error);
-        showToast('Ошибка при извлечении: ' + error.message, true);
-    } finally {
-        // Reset button state
-        extractBtn.classList.remove('loading');
-        extractBtn.disabled = false;
-        extractBtn.innerHTML = '<span class="btn-icon">🔍</span> Извлечь вопросы из фото';
     }
+
+    // All models failed
+    showToast('Ошибка при извлечении: ' + (lastError?.message || 'Все модели перегружены'), true);
+
+    // Reset button state
+    extractBtn.classList.remove('loading');
+    extractBtn.disabled = false;
+    extractBtn.innerHTML = '<span class="btn-icon">🔍</span> Извлечь вопросы из фото';
 }
 
 // Toggle API key visibility
