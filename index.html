@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор Билетов | Gemini AI</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="background-effects">
+        <div class="gradient-orb orb-1"></div>
+        <div class="gradient-orb orb-2"></div>
+        <div class="gradient-orb orb-3"></div>
+    </div>
+
+    <div class="container">
+        <header class="header">
+            <div class="logo">
+                <span class="logo-icon">📚</span>
+                <h1>Генератор Билетов</h1>
+            </div>
+            <p class="subtitle">Используйте силу AI для подготовки к экзаменам</p>
+        </header>
+
+        <main class="main-content">
+            <section class="input-section glass-card">
+                <div class="api-key-section">
+                    <label for="apiKey">
+                        <span class="label-icon">🔑</span>
+                        API Ключ Gemini
+                    </label>
+                    <div class="input-wrapper">
+                        <input type="password" id="apiKey" placeholder="Введите ваш API ключ...">
+                        <button type="button" class="toggle-visibility" onclick="toggleApiKeyVisibility()">👁️</button>
+                    </div>
+                    <a href="https://aistudio.google.com/apikey" target="_blank" class="api-link">
+                        Получить бесплатный ключ →
+                    </a>
+                </div>
+
+                <!-- Image Upload Section -->
+                <div class="upload-section">
+                    <label>
+                        <span class="label-icon">📷</span>
+                        Загрузить фото билета
+                    </label>
+                    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('imageInput').click()">
+                        <input type="file" id="imageInput" accept="image/*" style="display: none;"
+                            onchange="handleImageUpload(event)">
+                        <div class="upload-placeholder" id="uploadPlaceholder">
+                            <span class="upload-icon">📤</span>
+                            <p>Нажмите или перетащите фото билета</p>
+                            <span class="upload-hint">AI автоматически извлечёт номер и вопросы</span>
+                        </div>
+                        <div class="upload-preview" id="uploadPreview" style="display: none;">
+                            <img id="previewImage" src="" alt="Preview">
+                            <button type="button" class="remove-image-btn" onclick="removeImage(event)">✕</button>
+                        </div>
+                    </div>
+                    <button type="button" class="extract-btn" id="extractBtn" onclick="extractFromImage()"
+                        style="display: none;">
+                        <span class="btn-icon">🔍</span>
+                        Извлечь вопросы из фото
+                    </button>
+                </div>
+
+                <div class="divider">
+                    <span>или введите вручную</span>
+                </div>
+
+                <div class="ticket-number-section">
+                    <label for="ticketNumber">
+                        <span class="label-icon">🎫</span>
+                        Номер билета
+                    </label>
+                    <input type="number" id="ticketNumber" placeholder="Например: 26" min="1">
+                </div>
+
+                <div class="questions-section">
+                    <h3>
+                        <span class="label-icon">❓</span>
+                        Вопросы билета
+                    </h3>
+
+                    <div class="question-input">
+                        <label for="question1">Вопрос 1</label>
+                        <textarea id="question1" placeholder="Введите первый вопрос..." rows="2"></textarea>
+                    </div>
+
+                    <div class="question-input">
+                        <label for="question2">Вопрос 2</label>
+                        <textarea id="question2" placeholder="Введите второй вопрос..." rows="2"></textarea>
+                    </div>
+
+                    <div class="question-input">
+                        <label for="question3">Вопрос 3</label>
+                        <textarea id="question3" placeholder="Введите третий вопрос..." rows="2"></textarea>
+                    </div>
+                </div>
+
+                <button id="generateBtn" class="generate-btn" onclick="generateAnswers()">
+                    <span class="btn-icon">✨</span>
+                    Сгенерировать ответы
+                </button>
+            </section>
+
+            <section class="output-section glass-card" id="outputSection">
+                <div class="output-header">
+                    <h3>
+                        <span class="label-icon">📝</span>
+                        Результат
+                    </h3>
+                    <div class="output-actions" id="outputActions" style="display: none;">
+                        <button class="action-btn copy-btn" onclick="copyResult()" id="copyBtn">
+                            <span>📋</span> Копировать
+                        </button>
+                        <button class="action-btn download-btn" onclick="downloadTxt()">
+                            <span>📄</span> TXT
+                        </button>
+                        <button class="action-btn download-btn docx" onclick="downloadDocx()">
+                            <span>📝</span> DOCX
+                        </button>
+                    </div>
+                </div>
+
+                <div class="output-content" id="outputContent">
+                    <div class="placeholder-message">
+                        <span class="placeholder-icon">🎓</span>
+                        <p>Загрузите фото билета или введите вопросы вручную</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <p>Powered by Google Gemini AI</p>
+        </footer>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <!-- DOCX library -->
+    <script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>
