@@ -293,33 +293,51 @@ async function generateAnswers() {
     outputActions.style.display = 'none';
 
     // Build the prompt
-    const prompt = `Ты — квалифицированный преподаватель в Кыргызстане. Ответь на 3 вопроса экзаменационного билета.
+    const prompt = `Ответь на 3 вопроса экзаменационного билета для студента в Кыргызстане.
+
+ФОРМАТ ОТВЕТА (строго соблюдай):
+
+## 🧠 Билет ${ticketNumber}: [Краткое название темы]
+
+### 1. [Первый вопрос]
+
+[Краткое определение или введение в тему]
+
+#### 📌 [Подзаголовок с ключевыми пунктами]:
+
+1. **Первый пункт:**
+   * Подпункт
+   * Подпункт
+
+2. **Второй пункт:**
+   * Подпункт
+   * Подпункт
+
+---
+
+### 2. [Второй вопрос]
+
+[Аналогичная структура]
+
+---
+
+### 3. [Третий вопрос]
+
+[Аналогичная структура]
+
+ВОПРОСЫ БИЛЕТА:
+1. ${question1}
+2. ${question2}
+3. ${question3}
 
 ПРАВИЛА:
-1. Используй законодательство КЫРГЫЗСКОЙ РЕСПУБЛИКИ (ГК КР, УК КР, ТК КР, Конституция КР и т.д.)
-2. Отвечай КРАТКО, структурированно, по существу
-3. Адаптируй формат ответа под тип вопроса (теория, практика, задача)
-4. Отвечай на любые предметы: право, экономика, медицина, IT, история и др.
-
-СТРУКТУРА ОТВЕТА на каждый вопрос:
-• Определение/суть (1-2 предложения)
-• Основные положения/виды/этапы (списком)
-• Правовая основа в КР (если применимо)
-• Вывод (1 предложение)
-
-Если вопрос — ЗАДАЧА или СИТУАЦИЯ:
-• Дано
-• Анализ
-• Решение
-• Ответ
-
-БИЛЕТ ${ticketNumber}
-
-Вопрос 1: ${question1}
-Вопрос 2: ${question2}
-Вопрос 3: ${question3}
-
-Дай структурированные ответы на русском языке. Используй нумерацию и списки для читаемости.`;
+- Используй эмодзи для заголовков (📌, 🧠 и т.д.)
+- Используй ### для заголовков вопросов
+- Используй #### для подзаголовков
+- Используй нумерованные и маркированные списки
+- Делай переносы строк между разделами
+- Пиши подробно и структурированно
+- Отвечай на русском языке`;
 
     // Models to try - from primary to fallbacks (all confirmed to exist in docs)
     const models = [
@@ -377,7 +395,7 @@ async function generateAnswers() {
 
             if (data.candidates && data.candidates[0] && data.candidates[0].content) {
                 const resultText = data.candidates[0].content.parts[0].text;
-                currentResultText = cleanMarkdown(resultText); // Store cleaned text for downloads
+                currentResultText = resultText; // Store original text for downloads
 
                 // Display result
                 outputContent.innerHTML = `<div class="result-text">${formatResult(resultText)}</div>`;
@@ -424,49 +442,34 @@ async function generateAnswers() {
     generateBtn.innerHTML = '<span class="btn-icon">✨</span> Сгенерировать ответы';
 }
 
-// Format the result text with basic styling
+// Format the result text - convert markdown to HTML
 function formatResult(text) {
-    // Clean up markdown formatting first
-    let cleaned = text
-        // Remove bold markers ** and __
-        .replace(/\*\*([^*]+)\*\*/g, '$1')
-        .replace(/__([^_]+)__/g, '$1')
-        // Remove italic markers * and _
-        .replace(/\*([^*]+)\*/g, '$1')
-        .replace(/_([^_]+)_/g, '$1')
-        // Remove headers # ## ### etc
-        .replace(/^#{1,6}\s*/gm, '')
-        // Remove code blocks ```
-        .replace(/```[\s\S]*?```/g, '')
-        // Remove inline code `
-        .replace(/`([^`]+)`/g, '$1')
-        // Remove bullet points - and *
-        .replace(/^[\s]*[-*]\s+/gm, '• ')
-        // Remove numbered lists formatting like "1. " at start (but keep our question numbers)
-        // Clean up extra spaces
-        .replace(/\s{3,}/g, '  ');
-
-    // Escape HTML
-    let formatted = cleaned
+    let html = text
+        // Escape HTML first
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;');
 
-    // Add some basic formatting
-    formatted = formatted
-        // Bold for БИЛЕТ header
-        .replace(/^(БИЛЕТ\s*\d+)/gm, '<strong style="color: #818cf8; font-size: 1.3em;">$1</strong>')
-        // Bold for section headers
-        .replace(/^(ШАГ \d+\..*?)$/gm, '<strong style="color: #f472b6;">$1</strong>')
-        .replace(/^(РЕШЕНИЕ.*?)$/gm, '<strong style="color: #10b981;">$1</strong>')
-        .replace(/^(ИТОГ:?)$/gm, '<strong style="color: #10b981;">$1</strong>')
-        .replace(/^(ВАРИАНТ \d+.*?)$/gm, '<strong style="color: #fbbf24;">$1</strong>')
-        .replace(/^(Дано:)$/gm, '<strong style="color: #06b6d4;">$1</strong>')
-        .replace(/^(Вывод:)(.*)$/gm, '<strong style="color: #10b981;">$1</strong>$2')
-        // Format question numbers
-        .replace(/^(\d+\.)/gm, '<strong style="color: #818cf8;">$1</strong>');
+    // Convert markdown to HTML
+    html = html
+        // Headers ## and ### 
+        .replace(/^### (.+)$/gm, '<h3 style="color: #818cf8; margin: 20px 0 10px 0;">$1</h3>')
+        .replace(/^## (.+)$/gm, '<h2 style="color: #a78bfa; margin: 25px 0 15px 0;">$1</h2>')
+        .replace(/^#### (.+)$/gm, '<h4 style="color: #f472b6; margin: 15px 0 10px 0;">$1</h4>')
+        // Bold **text**
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        // Italic *text*
+        .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+        // Horizontal rule ---
+        .replace(/^---$/gm, '<hr style="border: none; border-top: 1px solid rgba(255,255,255,0.2); margin: 20px 0;">')
+        // Bullet points with *
+        .replace(/^(\s*)\* (.+)$/gm, '$1<span style="color: #06b6d4;">•</span> $2')
+        // Bullet points with -
+        .replace(/^(\s*)- (.+)$/gm, '$1<span style="color: #06b6d4;">•</span> $2')
+        // Numbered lists
+        .replace(/^(\d+)\. \*\*(.+?)\*\*:?(.*)$/gm, '<strong style="color: #10b981;">$1. $2</strong>$3');
 
-    return formatted;
+    return html;
 }
 
 // Copy result to clipboard
